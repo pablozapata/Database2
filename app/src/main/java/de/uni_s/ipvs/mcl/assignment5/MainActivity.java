@@ -60,7 +60,6 @@ public class MainActivity extends AppCompatActivity implements WeatherService.We
             adapter.enable();
         }
         tempView = (TextView) findViewById(R.id.Temper);
-        //humView=(TextView) findViewById(R.id.humidity);
         weatherService = new WeatherService(this, adapter, this);
         button = (Button) findViewById(R.id.connection);
 
@@ -108,10 +107,6 @@ public class MainActivity extends AppCompatActivity implements WeatherService.We
 
     }
 
-    public void onHumidityChanged(final int value) {
-
-
-    }
 
     @Override
     public void onWeatherServiceStarted() {
@@ -134,20 +129,12 @@ public class MainActivity extends AppCompatActivity implements WeatherService.We
 
     public void onTemperatureServiceRegistered() {
         Log.d(TAG, "onTemperatureServiceRegistered: Registered for temperature");
-        runOnUiThread(new Runnable() {
 
-            public void run() {
-
-                if(!weatherService.registerForHumidity()){
-                    Log.d(TAG, "run: Not writing Descriptor");
-                }
-            }
-        });
     }
 
-    public void onHumidityServiceRegistered() {
+    /*public void onHumidityServiceRegistered() {
         Log.d(TAG, "onHumidityServiceRegistered: Registered for humidity");
-    }
+    }*/
 
     @Override
     public void onWeatherServiceFailedStart(WeatherService.FailureReason reason) {
