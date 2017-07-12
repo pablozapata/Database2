@@ -63,7 +63,7 @@ public class BLEScanner extends ScanCallback {
     /**
      * The BLE Scan Time in Millis
      */
-    private static final long SCAN_TIME = 20000;
+    private static final long SCAN_TIME = 200000;
 
     /**
      * The handler used to post delayed runnable tasks, usually to stop the scanner after a certain time
