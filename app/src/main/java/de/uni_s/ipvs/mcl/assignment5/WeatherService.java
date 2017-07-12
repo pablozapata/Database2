@@ -97,6 +97,9 @@ public class WeatherService extends BluetoothGattCallback implements BLEScanner.
         }
     }
 
+
+
+
     public boolean registerForTemperature() {
         if (mBusy) {
             Log.d(TAG, "registerForTemperature: Gatt Busy");
@@ -138,6 +141,7 @@ public class WeatherService extends BluetoothGattCallback implements BLEScanner.
         }
         return false;
     }
+
 
 
     @Override
