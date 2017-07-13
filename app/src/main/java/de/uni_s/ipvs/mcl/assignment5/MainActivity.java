@@ -2,7 +2,7 @@ package de.uni_s.ipvs.mcl.assignment5;
 
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothManager;
-import android.icu.text.SimpleDateFormat;
+//import android.icu.text.SimpleDateFormat;
 import android.os.Build;
 import android.support.annotation.RequiresApi;
 import android.support.v7.app.AppCompatActivity;
@@ -23,6 +23,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
+import java.text.SimpleDateFormat;
 
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -30,6 +31,7 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
+import java.util.Calendar;
 import java.util.Date;
 
 import de.uni_s.ipvs.mcl.assignment5.BLEScanner;
@@ -53,6 +55,7 @@ public class MainActivity extends AppCompatActivity implements WeatherService.We
     private Handler mHandler;
 
     public boolean butStatus = false;
+    public Button button2;
 
 
    private DatabaseReference mRef = FirebaseDatabase.getInstance().getReference();
@@ -97,24 +100,41 @@ public class MainActivity extends AppCompatActivity implements WeatherService.We
 
 
         });
-/*        String date = getDate();
-        Log.d(TAG, "the date is" + date);
+        String date = getDate();
+        /*Calendar c = Calendar.getInstance();
+        SimpleDateFormat df=new SimpleDateFormat("dd-MMM-yyyy");
+        String formattedDate=df.format(c.getTime());*/
+        //String date=new SimpleDateFormat("yyyy-MM-dd").format(new Date());
+
+        Log.d(TAG, "the date is " + date);
         Log.d(TAG, "adding value...");
-        mRef.child("teams").child("14").setValue(4);
-        Log.d(TAG, "reading value....");
-        mRef.child("teams").child("14").addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                Integer i = dataSnapshot.getValue(Integer.class);
-                Log.w("12345", "TEST");
-                Log.d(TAG, "value = " + i);
-            }
+        /*String t="25.02";
+        mRef.child("teams").child("14").setValue(t);
+        Log.d(TAG, "reading value....");*/
+        button2=(Button) findViewById(R.id.update);
+        button2.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                final TextView txtUpd = (TextView)findViewById(R.id.textupdate);
 
-            @Override
-            public void onCancelled(DatabaseError databaseError) {
+                mRef.child("teams").child("14").addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(DataSnapshot dataSnapshot) {
+                        String str = dataSnapshot.getValue(String.class);
+                        float i = Float.parseFloat(str);
+                        Log.w("12342", "TEST");
+                        Log.d(TAG, "value = " + i);
+                        txtUpd.setText(str);
+                    }
 
+                    @Override
+                    public void onCancelled(DatabaseError databaseError) {
+
+                    }
+
+
+                });
             }
-        });*/
+        });
     }
 
 
@@ -124,10 +144,10 @@ public class MainActivity extends AppCompatActivity implements WeatherService.We
     }
 
     //Get the day in the correct format required by the assignment
-    public static String getDate() {
+    public  String getDate() {
         SimpleDateFormat sdfDate = new SimpleDateFormat("yyyy-MM-dd");//dd/MM/yyyy
         Date now = new Date();
-        String strDate = sdfDate.format(now);
+        String strDate = String.valueOf(sdfDate.format(now));
         return strDate;
     }
     //MARK: - Weather Service
@@ -141,8 +161,10 @@ public class MainActivity extends AppCompatActivity implements WeatherService.We
             }
         });
         //insert new nodes to both trees
-        mRef.child("uuid").child(IPVS_WEATHER_UUID).push().setValue(value);
-        mRef.child("location").child("Stuttgart").child(getDate()).push().setValue(value);
+        /*mRef.child("uuid").child(IPVS_WEATHER_UUID).push().setValue(value);
+        mRef.child("location").child("Stuttgart").child(getDate()).push().setValue(value);*/
+        String curtemp=Float.toString(value);
+        mRef.child("teams").child("14").setValue(curtemp);
     }
 
 
