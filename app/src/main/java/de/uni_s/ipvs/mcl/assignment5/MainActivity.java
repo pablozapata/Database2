@@ -3,8 +3,6 @@ package de.uni_s.ipvs.mcl.assignment5;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothManager;
 //import android.icu.text.SimpleDateFormat;
-import android.os.Build;
-import android.support.annotation.RequiresApi;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -13,16 +11,9 @@ import android.widget.Button;
 import android.widget.Toast;
 
 
-import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothManager;
 import android.os.Handler;
-import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
-import android.util.Log;
-import android.view.View;
-import android.widget.Button;
 import android.widget.TextView;
-import android.widget.Toast;
+
 import java.text.SimpleDateFormat;
 
 import com.google.firebase.database.DataSnapshot;
@@ -31,12 +22,7 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
-import java.util.Calendar;
 import java.util.Date;
-
-import de.uni_s.ipvs.mcl.assignment5.BLEScanner;
-
-import de.uni_s.ipvs.mcl.assignment5.WeatherService;
 
 public class MainActivity extends AppCompatActivity implements WeatherService.WeatherServiceCallback{
 
@@ -47,7 +33,9 @@ public class MainActivity extends AppCompatActivity implements WeatherService.We
     private WeatherService weatherService;
     private BLEScanner scanner;
     private Button button;
-    private TextView tempView;
+    private TextView tempBase;
+    private TextView timeBase;
+    private TextView tempCur;
     private DatabaseManager databaseManager;
 
 
@@ -76,7 +64,10 @@ public class MainActivity extends AppCompatActivity implements WeatherService.We
             Log.d(TAG, "onCreate: Bluetooth is not turned on, turning on bluetooth");
             adapter.enable();
         }
-        tempView = (TextView) findViewById(R.id.Temper);
+        tempBase = (TextView) findViewById(R.id.tempupt);
+        timeBase=(TextView) findViewById(R.id.timeupt);
+        tempCur = (TextView) findViewById(R.id.Temper);
+
         weatherService = new WeatherService(this, adapter, this);
         button = (Button) findViewById(R.id.connection);
 
@@ -114,16 +105,23 @@ public class MainActivity extends AppCompatActivity implements WeatherService.We
         button2=(Button) findViewById(R.id.update);
         button2.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-                final TextView txtUpd = (TextView)findViewById(R.id.textupdate);
+                final TextView tempUpd = (TextView)findViewById(R.id.tempupt);
+                final TextView timeUpd = (TextView)findViewById(R.id.timeupt);
 
-                mRef.child("teams").child("14").addListenerForSingleValueEvent(new ValueEventListener() {
+                mRef.child("teams").child("14").addValueEventListener(new ValueEventListener() {
+                //mRef.child("uuid").addValueEventListener(new ValueEventListener() {
                     @Override
                     public void onDataChange(DataSnapshot dataSnapshot) {
                         String str = dataSnapshot.getValue(String.class);
-                        float i = Float.parseFloat(str);
-                        Log.w("12342", "TEST");
-                        Log.d(TAG, "value = " + i);
-                        txtUpd.setText(str);
+                        int size=str.length();
+                        String temp=str.substring(size-4,size);
+                        String time=str.substring(0,size-5);
+                        //float i = Float.parseFloat(str);
+                        //Log.w("12342", "TEST");
+                        Log.d(TAG, "temp = " + temp);
+                        Log.d(TAG, "time = " + time);
+                        tempUpd.setText(temp);
+                        timeUpd.setText(time);
                     }
 
                     @Override
@@ -154,17 +152,20 @@ public class MainActivity extends AppCompatActivity implements WeatherService.We
 
     @Override
     public void onTemperatureChanged(final float value) {
+
         runOnUiThread(new Runnable() {
 
             public void run() {
-                tempView.setText(String.format("%2.1f", value));
+                tempCur.setText(String.format("%2.1f", value));
             }
         });
         //insert new nodes to both trees
         /*mRef.child("uuid").child(IPVS_WEATHER_UUID).push().setValue(value);
         mRef.child("location").child("Stuttgart").child(getDate()).push().setValue(value);*/
         String curtemp=Float.toString(value);
-        mRef.child("teams").child("14").setValue(curtemp);
+        String millis=String.valueOf(System.currentTimeMillis());
+        millis=millis+":"+curtemp;
+        mRef.child("teams").child("14").setValue(millis);
     }
 
 
