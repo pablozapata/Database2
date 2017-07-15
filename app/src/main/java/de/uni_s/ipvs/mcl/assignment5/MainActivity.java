@@ -14,6 +14,7 @@ import android.widget.Toast;
 import android.os.Handler;
 import android.widget.TextView;
 
+import java.math.BigInteger;
 import java.text.SimpleDateFormat;
 
 import com.google.firebase.database.DataSnapshot;
@@ -23,6 +24,7 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
 import java.util.Date;
+import java.util.Random;
 
 public class MainActivity extends AppCompatActivity implements WeatherService.WeatherServiceCallback{
 
@@ -43,7 +45,9 @@ public class MainActivity extends AppCompatActivity implements WeatherService.We
     private Handler mHandler;
 
     public boolean butStatus = false;
-    public Button button2;
+    private Button button2;
+    private Button button3;
+    private Button button4;
 
 
    private DatabaseReference mRef = FirebaseDatabase.getInstance().getReference();
@@ -64,9 +68,7 @@ public class MainActivity extends AppCompatActivity implements WeatherService.We
             Log.d(TAG, "onCreate: Bluetooth is not turned on, turning on bluetooth");
             adapter.enable();
         }
-        tempBase = (TextView) findViewById(R.id.tempupt);
-        timeBase=(TextView) findViewById(R.id.timeupt);
-        tempCur = (TextView) findViewById(R.id.Temper);
+
 
         weatherService = new WeatherService(this, adapter, this);
         button = (Button) findViewById(R.id.connection);
@@ -91,37 +93,31 @@ public class MainActivity extends AppCompatActivity implements WeatherService.We
 
 
         });
-        String date = getDate();
-        /*Calendar c = Calendar.getInstance();
-        SimpleDateFormat df=new SimpleDateFormat("dd-MMM-yyyy");
-        String formattedDate=df.format(c.getTime());*/
-        //String date=new SimpleDateFormat("yyyy-MM-dd").format(new Date());
 
-        Log.d(TAG, "the date is " + date);
-        Log.d(TAG, "adding value...");
-        /*String t="25.02";
-        mRef.child("teams").child("14").setValue(t);
-        Log.d(TAG, "reading value....");*/
-        button2=(Button) findViewById(R.id.update);
+
+        writeValue("test");
+
+
+
+
+        //Read last value (Task 1.2)
+        button2=(Button) findViewById(R.id.readLast);
         button2.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-                final TextView tempUpd = (TextView)findViewById(R.id.tempupt);
-                final TextView timeUpd = (TextView)findViewById(R.id.timeupt);
+                final TextView disp = (TextView)findViewById(R.id.readLast_res);
 
-                mRef.child("teams").child("14").addValueEventListener(new ValueEventListener() {
-                //mRef.child("uuid").addValueEventListener(new ValueEventListener() {
+
+                mRef.child("uuid").child(IPVS_WEATHER_UUID).addListenerForSingleValueEvent(new ValueEventListener() {
+                    //mRef.child("uuid").addValueEventListener(new ValueEventListener() {
                     @Override
                     public void onDataChange(DataSnapshot dataSnapshot) {
                         String str = dataSnapshot.getValue(String.class);
                         int size=str.length();
-                        String temp=str.substring(size-4,size);
-                        String time=str.substring(0,size-5);
-                        //float i = Float.parseFloat(str);
-                        //Log.w("12342", "TEST");
-                        Log.d(TAG, "temp = " + temp);
-                        Log.d(TAG, "time = " + time);
-                        tempUpd.setText(temp);
-                        timeUpd.setText(time);
+                        String temp = str.substring(14,size);
+
+                        disp.setText(temp + "ºC");
+
+
                     }
 
                     @Override
@@ -131,9 +127,82 @@ public class MainActivity extends AppCompatActivity implements WeatherService.We
 
 
                 });
+
+
             }
         });
+
+        //Subscribe to changes (Task 2.1)
+        button3=(Button) findViewById(R.id.suscribe);
+        button3.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                final TextView disp = (TextView)findViewById(R.id.suscribe_res);
+
+
+                mRef.child("uuid").child(IPVS_WEATHER_UUID).addValueEventListener(new ValueEventListener() {
+
+                    @Override
+                    public void onDataChange(DataSnapshot dataSnapshot) {
+                        String str = dataSnapshot.getValue(String.class);
+                        int size=str.length();
+                        String temp = str.substring(14,size);
+
+                        disp.setText(temp + "ºC");
+
+
+                    }
+
+                    @Override
+                    public void onCancelled(DatabaseError databaseError) {
+
+                    }
+
+
+                });
+
+
+            }
+        });
+
+        // TODO Get the day average (Task 2.2)
+
+        button4=(Button) findViewById(R.id.average);
+        button4.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                final TextView disp = (TextView)findViewById(R.id.average_res);
+
+
+
+
+            }
+        });
+
+
+
+
+
     }
+
+
+    //we create a new node in both trees
+    private void writeValue( String value) {
+        //add value to location tree
+        Random random = new Random();
+        String seq = new BigInteger(40, random).toString(32);
+
+        mRef.child("location").child("Stuttgart").child(getDate()).push().setValue(seq + ":" + value);
+
+        //  add value to the uuid tree
+        String time = Long.toString(System.currentTimeMillis());
+
+        mRef.child("uuid").child(IPVS_WEATHER_UUID).push().setValue(time + ":" + value);
+
+
+    }
+
+
+
+
 
 
     protected void onStart() {
@@ -148,6 +217,8 @@ public class MainActivity extends AppCompatActivity implements WeatherService.We
         String strDate = String.valueOf(sdfDate.format(now));
         return strDate;
     }
+
+
     //MARK: - Weather Service
 
     @Override
@@ -159,13 +230,9 @@ public class MainActivity extends AppCompatActivity implements WeatherService.We
                 tempCur.setText(String.format("%2.1f", value));
             }
         });
-        //insert new nodes to both trees
-        /*mRef.child("uuid").child(IPVS_WEATHER_UUID).push().setValue(value);
-        mRef.child("location").child("Stuttgart").child(getDate()).push().setValue(value);*/
+        //we write the new temperature to both trees
         String curtemp=Float.toString(value);
-        String millis=String.valueOf(System.currentTimeMillis());
-        millis=millis+":"+curtemp;
-        mRef.child("teams").child("14").setValue(millis);
+        writeValue(curtemp);
     }
 
 
@@ -193,9 +260,6 @@ public class MainActivity extends AppCompatActivity implements WeatherService.We
 
     }
 
-    /*public void onHumidityServiceRegistered() {
-        Log.d(TAG, "onHumidityServiceRegistered: Registered for humidity");
-    }*/
 
     @Override
     public void onWeatherServiceFailedStart(WeatherService.FailureReason reason) {

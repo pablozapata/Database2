@@ -142,6 +142,10 @@ public class WeatherService extends BluetoothGattCallback implements BLEScanner.
         return false;
     }
 
+    //With this function we try to read the actual temperature at the moment
+
+
+
 
 
     @Override
