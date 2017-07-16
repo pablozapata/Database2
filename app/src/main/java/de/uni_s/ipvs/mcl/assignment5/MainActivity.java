@@ -8,6 +8,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.Toast;
 
 
@@ -48,6 +49,8 @@ public class MainActivity extends AppCompatActivity implements WeatherService.We
     private Button button2;
     private Button button3;
     private Button button4;
+    private Button button_write;
+    private EditText input;
 
 
    private DatabaseReference mRef = FirebaseDatabase.getInstance().getReference();
@@ -95,9 +98,15 @@ public class MainActivity extends AppCompatActivity implements WeatherService.We
         });
 
 
-        writeValue("test");
-
-
+        //write a new value when the "write" bottom is pressed
+        button_write = (Button) findViewById(R.id.writevalue);
+        button_write.setOnClickListener(new View.OnClickListener(){
+            public void onClick(View v){
+                input= (EditText) findViewById(R.id.temp_input);
+                String temp_towrite = input.getText().toString();
+                writeValue(temp_towrite);
+            }
+        });
 
 
         //Read last value (Task 1.2)
@@ -196,6 +205,8 @@ public class MainActivity extends AppCompatActivity implements WeatherService.We
         String time = Long.toString(System.currentTimeMillis());
 
         mRef.child("uuid").child(IPVS_WEATHER_UUID).push().setValue(time + ":" + value);
+
+        Toast.makeText(getApplicationContext(),"New value added to database",Toast.LENGTH_SHORT).show();
 
 
     }
