@@ -25,6 +25,8 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
 
 public class MainActivity extends AppCompatActivity implements WeatherService.WeatherServiceCallback{
@@ -36,7 +38,7 @@ public class MainActivity extends AppCompatActivity implements WeatherService.We
     private WeatherService weatherService;
     private BLEScanner scanner;
     private Button button;
-    private TextView tempBase;
+    //private TextView tempBase;
     private TextView timeBase;
     private TextView tempCur;
     private DatabaseManager databaseManager;
@@ -53,7 +55,7 @@ public class MainActivity extends AppCompatActivity implements WeatherService.We
     private EditText input;
 
 
-   private DatabaseReference mRef = FirebaseDatabase.getInstance().getReference();
+    public DatabaseReference mRef = FirebaseDatabase.getInstance().getReference();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -75,6 +77,7 @@ public class MainActivity extends AppCompatActivity implements WeatherService.We
 
         weatherService = new WeatherService(this, adapter, this);
         button = (Button) findViewById(R.id.connection);
+        tempCur = (TextView)findViewById(R.id.tempRealT);
 
         button.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
@@ -102,9 +105,10 @@ public class MainActivity extends AppCompatActivity implements WeatherService.We
         button_write = (Button) findViewById(R.id.writevalue);
         button_write.setOnClickListener(new View.OnClickListener(){
             public void onClick(View v){
-                input= (EditText) findViewById(R.id.temp_input);
-                String temp_towrite = input.getText().toString();
+                String temp_towrite = String.valueOf(tempCur.getText());
                 writeValue(temp_towrite);
+
+
             }
         });
 
@@ -113,18 +117,26 @@ public class MainActivity extends AppCompatActivity implements WeatherService.We
         button2=(Button) findViewById(R.id.readLast);
         button2.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-                final TextView disp = (TextView)findViewById(R.id.readLast_res);
+                final TextView tempdisp = (TextView)findViewById(R.id.readLast_res);
+                final TextView timedisp = (TextView)findViewById(R.id.readLast_time);
+                //DatabaseReference mRef = FirebaseDatabase.getInstance().getReference();
 
 
-                mRef.child("uuid").child(IPVS_WEATHER_UUID).addListenerForSingleValueEvent(new ValueEventListener() {
-                    //mRef.child("uuid").addValueEventListener(new ValueEventListener() {
+                //mRef.child("uuid").child(IPVS_WEATHER_UUID).addListenerForSingleValueEvent(new ValueEventListener() {
+                mRef.child("teams").child("14").addListenerForSingleValueEvent (new ValueEventListener() {
+                    //mRef.child("uuid").addListenerForSingleValueEvent(new ValueEventListener() {
                     @Override
                     public void onDataChange(DataSnapshot dataSnapshot) {
-                        String str = dataSnapshot.getValue(String.class);
-                        int size=str.length();
-                        String temp = str.substring(14,size);
+                       // String str= dataSnapshot.getValue().toString();
+                        //String str=dataSnapshot.getKey();
+                        String lastval=readNew(dataSnapshot);
 
-                        disp.setText(temp + "ºC");
+                        int size=lastval.length();
+                        String temp = lastval.substring(14,size);
+                        String time=lastval.substring(0,13);
+
+                        tempdisp.setText(temp + "ºC");
+                        timedisp.setText(time);
 
 
                     }
@@ -145,19 +157,21 @@ public class MainActivity extends AppCompatActivity implements WeatherService.We
         button3=(Button) findViewById(R.id.suscribe);
         button3.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-                final TextView disp = (TextView)findViewById(R.id.suscribe_res);
+                final TextView tempdisp = (TextView)findViewById(R.id.suscribe_res);
+                final TextView timedisp = (TextView)findViewById(R.id.subscribe_time);
 
-
-                mRef.child("uuid").child(IPVS_WEATHER_UUID).addValueEventListener(new ValueEventListener() {
+                mRef.child("teams").child("14").addValueEventListener(new ValueEventListener() {
 
                     @Override
                     public void onDataChange(DataSnapshot dataSnapshot) {
-                        String str = dataSnapshot.getValue(String.class);
-                        int size=str.length();
-                        String temp = str.substring(14,size);
 
-                        disp.setText(temp + "ºC");
+                        String lastval=readNew(dataSnapshot);
 
+                        int size=lastval.length();
+                        String temp = lastval.substring(14,size);
+                        String time=lastval.substring(0,13);
+                        tempdisp.setText(temp + "ºC");
+                        timedisp.setText(time);
 
                     }
 
@@ -173,47 +187,126 @@ public class MainActivity extends AppCompatActivity implements WeatherService.We
             }
         });
 
-        // TODO Get the day average (Task 2.2)
+        // Get average value once
 
         button4=(Button) findViewById(R.id.average);
         button4.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 final TextView disp = (TextView)findViewById(R.id.average_res);
+                mRef.child("teams").child("14").addListenerForSingleValueEvent (new ValueEventListener() {
+                    //mRef.child("uuid").addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(DataSnapshot dataSnapshot) {
+                        float averval=getAver(dataSnapshot);
 
+                        disp.setText(averval + "ºC");
 
+                    }
+                    public void onCancelled(DatabaseError databaseError) {
 
+                    }
+
+                });
 
             }
         });
 
 
 
+    }
+    //Reading new data once
+    public String readNew(DataSnapshot dataSnapshot){
 
+        int i=0;
+        long min=0;
+        long dif=0;
+        long curtime =System.currentTimeMillis();
+        String lastval="";
+        //Working with database as an array
+        for (DataSnapshot messageSnapshot:dataSnapshot.getChildren()){
+            String msg=(String) messageSnapshot.getValue(String.class);
 
+            //Some messages was saved incorrectly, we need only messages with size = 18
+            if (msg.length()==18){
+                //extracting time stamp
+                String sub=msg.substring(0,13);
+                long mills=Long.parseLong(sub);
+                //trying to find minimum difference between current time and time stamp from node in DB
+                if (i==0){
+                    min=curtime-mills;
+                }
+                dif=curtime-mills;
+
+                if (dif<mills){
+                    lastval=msg;
+                }
+
+                i++;
+            }
+
+        }
+
+        //rerurn node, which is closer to current time
+        return lastval;
+    }
+
+    //Calculating average value of temperature
+    public float getAver(DataSnapshot dataSnapshot){
+        int i=0;
+        String msg="";
+        float curval=0;
+        float sum=0;
+        String sub="";
+
+        for (DataSnapshot messageSnapshot:dataSnapshot.getChildren()){
+
+            msg=(String) messageSnapshot.getValue(String.class);
+
+            //Some messages was saved incorrectly, we need only messages with size = 18
+            
+            if (msg.length()==18){
+                sub=msg.substring(14,msg.length());
+                curval=Float.parseFloat(sub);
+                //Just summing up all values
+                sum+=curval;
+                //Track number of iterations
+                i++;
+
+            }
+
+            }
+            // return average value
+        return sum/i;
     }
 
 
     //we create a new node in both trees
     private void writeValue( String value) {
+        //DatabaseReference mRef = FirebaseDatabase.getInstance().getReference();
         //add value to location tree
-        Random random = new Random();
-        String seq = new BigInteger(40, random).toString(32);
+        //Random random = new Random();
+        //String seq = new BigInteger(40, random).toString(32);
 
-        mRef.child("location").child("Stuttgart").child(getDate()).push().setValue(seq + ":" + value);
+        //mRef.child("location").child("Stuttgart").child(getDate()).push().setValue(seq + ":" + value);
 
-        //  add value to the uuid tree
-        String time = Long.toString(System.currentTimeMillis());
+        //  extracting current time
+        String time = String.valueOf(System.currentTimeMillis());
 
-        mRef.child("uuid").child(IPVS_WEATHER_UUID).push().setValue(time + ":" + value);
+        //getting values of temperature
+        String temp= value.substring(0,4);
+
+
+        //mRef.child("uuid").child(IPVS_WEATHER_UUID).push().setValue(time + ":" + value);
+
+        //Writing values to database
+        String mes=time+":"+temp;
+        Log.d(TAG,"added to database "+mes);
+        mRef.child("teams").child("14").push().setValue(mes);
 
         Toast.makeText(getApplicationContext(),"New value added to database",Toast.LENGTH_SHORT).show();
 
 
     }
-
-
-
-
 
 
     protected void onStart() {
@@ -234,16 +327,16 @@ public class MainActivity extends AppCompatActivity implements WeatherService.We
 
     @Override
     public void onTemperatureChanged(final float value) {
+        final TextView temp1 = (TextView)findViewById(R.id.tempRealT);
 
+        String temer=String.valueOf(value);
         runOnUiThread(new Runnable() {
 
             public void run() {
-                tempCur.setText(String.format("%2.1f", value));
+                tempCur.setText(value+"ºC");
             }
         });
-        //we write the new temperature to both trees
-        String curtemp=Float.toString(value);
-        writeValue(curtemp);
+
     }
 
 
